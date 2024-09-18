@@ -47,15 +47,18 @@ class Process(Thread):
         while self.alive:
             sleep(1)
             print(f"{self.name} Loop: {loop} with Lamport clock: {self.com.clock}")
-            self.broadcast(loop)
+            # self.broadcast(loop)
+            self.sendTo(loop, "P1")
             loop += 1
         
         print(self.getName() + " stopped")
         
+    # Broadcast test
     def broadcast(self, loop):
-        # Broadcast test
+        
         if loop == 2 and self.numero == 1:
             self.com.broadcast("bonjour")
+            
         if loop == 3 and self.numero == 2:
             self.com.broadcast("bonsoir")
 
@@ -63,6 +66,19 @@ class Process(Thread):
             if len(self.com.mailbox) > 0:
                 message = self.com.get_FirstMessage()  # Utilisez get_message() à la place de getFirstMessage()
                 print(message.obj if message else "No message found")
+    
+    
+    def sendTo(self, loop, to):
+        # Send to test
+        
+        if loop == 2 and self.numero == 1:
+            self.com.sendTo("bonjour", to)
+
+        if loop == 4 and self.numero == to:
+            if len(self.com.mailbox) > 0:
+                print(self.com.get_FirstMessage())
+
+
     def stop(self):
         self.alive = False
         self.com.stop()  

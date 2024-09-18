@@ -69,3 +69,13 @@ class Com(Thread):
                 self.mailbox.append(event)
                 self.inc_clock()
                 print(f"[Com-{self.process.name}] received broadcast from {event.from_process}: {event.obj}")
+                
+                
+    
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=MessageTo)
+    def onMessageTo(self, event: MessageTo):
+        """Traitement de la réception des messages"""
+        if event.to_process == self.process.name:
+            self.mailbox.append(event)
+            self.inc_clock()
+            print(f"[Com-{self.process.name}] received direct message from {event.from_process}: {event.obj}")
