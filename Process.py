@@ -51,6 +51,9 @@ class Process(Thread):
             # self.broadcast(loop)
             # self.sendTo(loop, "P1")
             # self.tokenTest(loop)
+            # self.broadcastSync(loop)
+            self.sendToSync(loop, "P1")
+
             loop += 1
 
         print(self.getName() + " stopped")
@@ -99,6 +102,29 @@ class Process(Thread):
             print(f"{self.name} is leaving the critical section.")
             self.com.releaseSC()  # Libère la section critique et passe le jeton au suivant
 
+
+    def broadcastSync(self, loop):
+        if loop == 1 and self.numero == 0:
+            self.com.broadcastSync("bonjour", 0)
+            
+        if loop == 3 and self.numero == 1:
+            self.com.broadcastSync("bonsoir", 1)
+
+        if loop == 4:
+            if len(self.com.mailbox) > 0:
+                message = self.com.getLastMessage()  # Utilisez get_message() à la place de getFirstMessage()
+                print(message.obj if message else "No message found")
+
+    def sendToSync(self, loop, to):
+        
+        if loop == 2 and self.numero == 0:
+            self.com.sendToSync("bonjour", to)
+        if loop == 3 and self.numero == 2:
+            self.com.sendToSync("bonjour", to)
+
+        if loop == 4 and self.numero == to:
+            if len(self.com.mailbox) > 0:
+                print(self.com.getFirstMessage())
 
     def stop(self):
         self.alive = False
