@@ -62,3 +62,11 @@ class MessageReceivedSync(Bidule):
         self.src = src  # Ajoute cet attribut pour indiquer l'émetteur de la confirmation
         self.dest = dest
         self.lamport_clock = lamport_clock
+        
+
+class Exist():
+    """Confirmation de réception d'un message synchrone."""
+    def __init__(self, name, numero):
+        self.src = name
+        self.numero = numero
+        

@@ -2,6 +2,8 @@ from threading import Event, Lock, Semaphore, Thread, Barrier
 from time import sleep
 from Bidule import *
 from pyeventbus3.pyeventbus3 import *
+import random
+
 
 
 class Token:
@@ -20,6 +22,7 @@ class Com(Thread):
     confirmations_received = 0
     confirmations_lock = Lock()  # Pour protéger l'accès au compteur
     total_processes = None  # Nombre total de processus à attendre (à initialiser avec nbProcess)
+    total_processes2 = 0
 
     def __init__(self, clock, process) -> None:
         Thread.__init__(self)
@@ -38,6 +41,7 @@ class Com(Thread):
         self.sync_event = Event()
         self.received_sync = False
         self.received_from_all = False
+        self.process_ids = {}
         self.start()
 
         # Initialiser la barrière pour synchroniser tous les processus
@@ -80,11 +84,11 @@ class Com(Thread):
         self.sem.release()
         return self.clock
 
-    def sendTo(self, obj: any, dest: str):
+    def sendTo(self, obj: any, dest: int):
         """Envoie l'objet à un processus spécifique."""
         self.inc_clock()
         print(f"[Com-{self.process.name}] sends to {dest}: {obj} with Lamport clock: {self.clock}")
-        PyBus.Instance().post(MessageTo(obj, self.process.name, dest))
+        PyBus.Instance().post(MessageTo(obj, self.process.name, f"P{dest}"))
 
     def broadcast(self, obj: any):
         """Diffusion de l'objet à tous les processus."""
@@ -165,7 +169,7 @@ class Com(Thread):
     def onMessageTo(self, event: MessageTo):
         """Traitement de la réception des messages"""
         if event.to_process == self.process.name:
-            self.mailbox.append(event)
+            self.mailbox.append(event.obj)
             self.inc_clock()
             print(f"[Com-{self.process.name}] received direct message from {event.from_process}: {event.obj}")
             
@@ -221,18 +225,17 @@ class Com(Thread):
                 Com.confirmations_received += 1
             self.received_from_all = True
     
-    
-    def sendToSync(self, obj: any, dest: str):
+    def sendToSync(self, obj: any, dest: int):
         """Envoie un message de manière synchrone à un processus spécifique."""
         self.inc_clock()
         print(f"[Com-{self.process.name}] sendToSync to {dest}: {obj} with Lamport clock: {self.clock}")
-        PyBus.Instance().post(MessageToSync(obj, self.process.name, dest))  # Envoie le message
+        PyBus.Instance().post(MessageToSync(obj, self.process.name, f"P{dest}"))  # Envoie le message
 
         # Attendre la confirmation de réception du destinataire
         while not self.received_from_all:
             sleep(0.1)
         
-        print(f"[Com-{self.process.name}] Message synchronously received by {dest}.")
+        print(f"[Com-{self.process.name}] Message synchronously received by P{dest}.")
         self.received_from_all = False  # Reset pour la prochaine utilisation
 
 
@@ -248,10 +251,62 @@ class Com(Thread):
     def onMessageTo(self, event: MessageToSync):
         """Traitement de la réception des messages directs"""
         if event.to_process == self.process.name:
-            self.mailbox.append(event)
+            self.mailbox.append(event.obj)
             self.inc_clock()
             print(f"[Com-{self.process.name}] received direct message from {event.from_process}: {event.obj}")
 
             # Envoyer une confirmation de réception synchrone
             PyBus.Instance().post(MessageReceivedSync(src=self.process.numero, dest=int(event.from_process[-1]), lamport_clock=self.clock))
             self.received_sync = True  # Marquer la réception
+    
+    
+            
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=Exist)
+    def onExist(self, event: Exist):
+        """
+        Recevoir un numéro existant et vérifier les conflits.
+        """
+        self.total_processes2 += 1
+        with Com.sync_lock:
+            print(f"[Com-{self.process.name}] received Exist event from {event.src}, process number: {event.numero}")
+            self.process_ids[event.src] = event.numero  # Stocker le numéro reçu
+            
+        # Vérifier s'il y a des conflits avec le numéro de ce processus
+        if event.numero == self.process.numero and event.src != self.process.name:
+            print(f"[Com-{self.process.name}] Conflict detected with {event.src}. Regenerating a new number.")
+            self.regenerate_number()
+
+    def numerotation(self):
+        """
+        Début de la procédure de numérotation des processus.
+        """
+        sleep(2)
+        if self.process.name == "P0":
+            # Le leader (P0) choisit le premier numéro
+            self.process.numero = 0
+            self.process.myId = 0
+            print(f"{self.process.name} is the leader with number {self.process.numero}.")
+            PyBus.Instance().post(Exist(self.process.name, self.process.numero))
+        else:
+            # Les autres processus choisissent un numéro aléatoire
+            self.regenerate_number()
+
+    def regenerate_number(self):
+        """
+        Génère un nouveau numéro aléatoire et le diffuse aux autres processus.
+        """
+        self.process.numero = random.randint(1, (self.total_processes2 * 1000))
+        self.process.myId = self.process.numero
+        print(f"{self.process.name} has generated a new number: {self.process.numero}")
+        
+        # Diffuser le nouveau numéro aux autres processus
+        PyBus.Instance().post(Exist(self.process.name, self.process.numero))
+
+    def check_for_conflicts(self):
+        """
+        Vérifie les conflits après la réception des numéros des autres processus.
+        """
+        for process_name, numero in self.process_ids.items():
+            if numero == self.process.numero and process_name != self.process.name:
+                return True
+        return False

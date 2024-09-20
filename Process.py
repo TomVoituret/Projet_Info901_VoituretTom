@@ -41,6 +41,7 @@ class Process(Thread):
         self.start()
 
     def run(self):
+        self.com.numerotation()
         while self.nbProcess != Process.nbProcessCreated:
             pass
 
@@ -49,10 +50,10 @@ class Process(Thread):
             sleep(1)
             print(f"{self.name} Loop: {loop} with Lamport clock: {self.com.clock}")
             # self.broadcast(loop)
-            # self.sendTo(loop, "P1")
+            # self.sendTo(loop, 1)
             # self.tokenTest(loop)
             # self.broadcastSync(loop)
-            self.sendToSync(loop, "P1")
+            self.sendToSync(loop, 1)
 
             loop += 1
 
@@ -116,9 +117,12 @@ class Process(Thread):
                 print(message.obj if message else "No message found")
 
     def sendToSync(self, loop, to):
-        
+        if loop == 0 and self.numero == 1:
+            self.com.receiveFromSync(0)
         if loop == 2 and self.numero == 0:
             self.com.sendToSync("bonjour", to)
+        if loop == 1 and self.numero == 1:
+            self.com.receiveFromSync(2)
         if loop == 3 and self.numero == 2:
             self.com.sendToSync("bonjour", to)
 
