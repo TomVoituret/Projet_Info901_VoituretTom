@@ -41,7 +41,7 @@ class Process(Thread):
         self.start()
 
     def run(self):
-        self.com.numerotation()
+        # self.com.numerotation()
         while self.nbProcess != Process.nbProcessCreated:
             pass
 
@@ -50,10 +50,10 @@ class Process(Thread):
             sleep(1)
             print(f"{self.name} Loop: {loop} with Lamport clock: {self.com.clock}")
             # self.broadcast(loop)
-            # self.sendTo(loop, 1)
+            # self.sendTo(loop, "P1")
             # self.tokenTest(loop)
             # self.broadcastSync(loop)
-            self.sendToSync(loop, 1)
+            # self.sendToSync(loop, "P1")
 
             loop += 1
 
@@ -77,10 +77,10 @@ class Process(Thread):
     def sendTo(self, loop, to):
         # Send to test
         
-        if loop == 2 and self.numero == 0:
+        if loop == 2 and self.name == "P0":
             self.com.sendTo("bonjour", to)
 
-        if loop == 4 and self.numero == to:
+        if loop == 4 and  self.name == to:
             if len(self.com.mailbox) > 0:
                 print(self.com.getFirstMessage())
 
@@ -105,11 +105,11 @@ class Process(Thread):
 
 
     def broadcastSync(self, loop):
-        if loop == 1 and self.numero == 0:
-            self.com.broadcastSync("bonjour", 0)
+        if loop == 1 and  self.name == "P0":
+            self.com.broadcastSync("bonjour", "P0")
             
-        if loop == 3 and self.numero == 1:
-            self.com.broadcastSync("bonsoir", 1)
+        if loop == 3 and  self.name == "P1":
+            self.com.broadcastSync("bonsoir", "P1")
 
         if loop == 4:
             if len(self.com.mailbox) > 0:
@@ -117,13 +117,14 @@ class Process(Thread):
                 print(message.obj if message else "No message found")
 
     def sendToSync(self, loop, to):
-        if loop == 0 and self.numero == 1:
-            self.com.receiveFromSync(0)
-        if loop == 2 and self.numero == 0:
+        if loop == 0 and  self.name == "P1":
+            self.com.receiveFromSync("P0")
+            #print(self.com.process_ids)
+        if loop == 2 and  self.name == "P0":
             self.com.sendToSync("bonjour", to)
-        if loop == 1 and self.numero == 1:
-            self.com.receiveFromSync(2)
-        if loop == 3 and self.numero == 2:
+        if loop == 1 and  self.name == "P1":
+            self.com.receiveFromSync("P2")
+        if loop == 3 and  self.name == "P2":
             self.com.sendToSync("bonjour", to)
 
         if loop == 4 and self.numero == to:

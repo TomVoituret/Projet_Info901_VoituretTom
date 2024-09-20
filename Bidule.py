@@ -63,10 +63,10 @@ class MessageReceivedSync(Bidule):
         self.dest = dest
         self.lamport_clock = lamport_clock
         
+        
 
 class Exist():
     """Confirmation de réception d'un message synchrone."""
     def __init__(self, name, numero):
         self.src = name
         self.numero = numero
-        

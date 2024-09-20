@@ -29,6 +29,12 @@ class Com(Thread):
         self.setName(f"Com-{process.numero}")
         PyBus.Instance().register(self, self)
 
+        with Com.sync_lock:
+                    if Com.sync_barrier is None:
+                        Com.sync_barrier = Barrier(process.nbProcessCreated)
+                    # Initialiser total_processes2 avec le nombre de parties de la barrière
+                    self.total_processes2 = Com.sync_barrier.parties
+
         self.owner = process.numero
         self.clock = clock
         self.sem = Semaphore()  # Protection de l'horloge avec un sémaphore
