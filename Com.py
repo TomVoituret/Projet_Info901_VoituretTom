@@ -222,11 +222,11 @@ class Com(Thread):
             self.received_from_all = True
     
     
-    def sendToSync(self, obj: any, dest: int):
+    def sendToSync(self, obj: any, dest: str):
         """Envoie un message de manière synchrone à un processus spécifique."""
         self.inc_clock()
         print(f"[Com-{self.process.name}] sendToSync to {dest}: {obj} with Lamport clock: {self.clock}")
-        PyBus.Instance().post(MessageToSync(obj, self.process.name, f"P{dest}"))  # Envoie le message
+        PyBus.Instance().post(MessageToSync(obj, self.process.name, dest))  # Envoie le message
 
         # Attendre la confirmation de réception du destinataire
         while not self.received_from_all:
